@@ -1,65 +1,126 @@
-import Image from "next/image";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
+import { prisma } from "../lib/prisma";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+export const revalidate = 300;
+
+export default async function HomePage() {
+  const articles = await prisma.article.findMany({
+    orderBy: { publishedAt: "desc" },
+    take: 30,
+  });
+
+  if (!articles.length) {
+    return (
+      <main className="flex items-center justify-center h-[80vh] text-gray-500 text-lg">
+        ⏳ Đang cập nhật tin tức mới nhất...
       </main>
-    </div>
+    );
+  }
+
+  const [featured, ...rest] = articles;
+
+  // Chia tin có / không có ảnh
+  const withImage = rest.filter((a: any) => !!a.image);
+  const withoutImage = rest.filter((a: any) => !a.image);
+
+  return (
+    <main className="max-w-7xl mx-auto px-6 py-10 space-y-12">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b pb-3">
+        <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+          📰 Tin tức hôm nay
+        </h1>
+        <p className="text-gray-500 text-sm">Cập nhật tự động mỗi 5 phút</p>
+      </div>
+
+      {/* Tin nổi bật */}
+      <Link
+        href={featured.link}
+        target="_blank"
+        className="block rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all bg-white"
+      >
+        {featured.image && (
+          <div className="relative">
+            <img
+              src={featured.image}
+              alt={featured.title}
+              className="w-full h-[440px] object-cover transition-transform duration-500 hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+            <div className="absolute bottom-6 left-6 right-6 text-white">
+              <h2 className="text-3xl font-bold mb-3">{featured.title}</h2>
+              <p className="text-gray-200 max-w-3xl line-clamp-3">
+                {featured.summary || featured.description}
+              </p>
+            </div>
+          </div>
+        )}
+      </Link>
+
+      {/* Hai cột: có ảnh + không ảnh */}
+      <div className="grid lg:grid-cols-3 gap-10">
+        {/* Cột tin có ảnh */}
+        <div className="lg:col-span-2 grid sm:grid-cols-2 gap-8">
+          {withImage.map((a: any) => (
+            <Link
+              key={a.id}
+              href={a.link}
+              target="_blank"
+              className="group rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition flex flex-col"
+            >
+              <div className="relative overflow-hidden">
+                <img
+                  src={a.image}
+                  alt={a.title}
+                  className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <div className="p-4 flex flex-col flex-1">
+                <h3 className="font-semibold text-lg text-gray-900 mb-2 group-hover:text-blue-600 line-clamp-2">
+                  {a.title}
+                </h3>
+                <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                  {a.summary || a.description}
+                </p>
+                <div className="mt-auto flex justify-between text-xs text-gray-500">
+                  <span>{a.source}</span>
+                  <span>
+                    {new Date(a.publishedAt).toLocaleDateString("vi-VN")}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Cột tin không ảnh */}
+        <div className="space-y-6">
+          <h2 className="font-semibold text-xl text-gray-800 border-b pb-2">
+            🗞 Tin nhanh
+          </h2>
+          {withoutImage.slice(0, 10).map((a: any) => (
+            <Link
+              key={a.id}
+              href={a.link}
+              target="_blank"
+              className="block group"
+            >
+              <h3 className="font-medium text-gray-900 group-hover:text-blue-600 line-clamp-2 mb-1">
+                {a.title}
+              </h3>
+              <p className="text-gray-500 text-sm line-clamp-2">
+                {a.summary || a.description}
+              </p>
+              <div className="text-xs text-gray-400 mt-1">
+                {a.source} —{" "}
+                {new Date(a.publishedAt).toLocaleDateString("vi-VN")}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </main>
   );
 }

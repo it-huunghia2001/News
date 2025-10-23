@@ -1,0 +1,23 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Article {
+  id          Int      @id @default(autoincrement())
+  title       String
+  slug        String   @unique
+  summary     String?
+  content     String?
+  image       String?
+    description String?  // 🆕 thêm dòng này
+  link        String   @unique
+  category    String
+  publishedAt DateTime
+  source      String?
+  createdAt   DateTime @default(now())
+}
